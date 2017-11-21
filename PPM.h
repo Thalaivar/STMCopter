@@ -8,8 +8,7 @@
 
 uint16_t channelVal[6];
 void measureChannel();          //gets all channel values
-bool printChannel;              //set true to print channel values
-void printChannelVals();              
+void printChannelVals(bool printChannel);              
 uint8_t currentChannel;     //to keep track of which channel is being read
 
 void measureChannel(){
@@ -74,7 +73,8 @@ void measureChannel(){
           } 
     }
 
-void printChannelVals(){
-        if(printChannel) pc.printf("1: %d  ;  2: %d  ;  3: %d  ;  4: %d\n", channelVal[0], channelVal[1], channelVal[2], channelVal[3]);
+void printChannelVals(bool printChannel){
+        if(printChannel)
+        pc.printf("1: %d  ;  2: %d  ;  3: %d  ;  4: %d\n", channelVal[0], channelVal[1], channelVal[2], channelVal[3]);
     }
 #endif

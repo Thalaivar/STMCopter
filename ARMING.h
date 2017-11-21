@@ -7,8 +7,8 @@
 #include "PPM.h"
 
 void armQuad();             
-void disarmCheck();          //called every loop to check fo disarm
-void quadTestMode(bool enable);  //when testing in room, call this function to avoid uneccesary arming
+void disarmCheck();                 //called every loop to check fo disarm
+bool quadTestMode(bool enable);     //when testing in room, call this function to avoid uneccesary arming
 void shutdown();      
 bool armCheck;
 
@@ -16,6 +16,7 @@ void armQuad(){
         myled = 1;
         armCheck = false;
         t.start();
+        pc.printf("Awaiting Arming\n");
         while(!armCheck){
                 if(channelVal[1] < 1050 && channelVal[2] < 1050){
                         wait(2);
@@ -30,6 +31,7 @@ void armQuad(){
                                 myled=0;
                                 wait(1);
                                 myled = 1;
+                                if(armCheck) pc.printf("QUAD IS ARMED!!!\n");
                                 wait(10);
                                 myled = 0;
                                 break;
@@ -47,8 +49,9 @@ void disarmCheck(){
     }
 
 
-void quadTestMode(bool enable){
+bool quadTestMode(bool enable){
     armCheck = enable;
+    return enable;
 }
 
 void shutdown() {
