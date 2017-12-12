@@ -3,21 +3,23 @@
 #include "mbed.h"
 #include "MPU9250.h"
 
-#define ESC_MOTOR1 PA_0
-#define ESC_MOTOR2 PA_1
-#define ESC_MOTOR3 PB_10
-#define ESC_MOTOR4 PB_4
+#define ESC_MOTOR3 PA_11
+#define ESC_MOTOR1 PC_5
+#define ESC_MOTOR2 PC_4
+#define ESC_MOTOR4 PB_9
+#define PPM_PIN PA_8
+#define TX_PIN PB_6
+#define RX_PIN PA_10
 
-Serial pc(PA_2, PA_3);  //d10, d2
-Timer t, t1;
+Serial pc(TX_PIN, RX_PIN);
+//Serial pc(USBTX, USBRX);
+Timer t, t1, t3;
 MPU9250 imu;
-InterruptIn ppmPin(PB_5);
+InterruptIn ppmPin(PPM_PIN);
 PwmOut esc1(ESC_MOTOR1);
 PwmOut esc2(ESC_MOTOR2);
 PwmOut esc3(ESC_MOTOR3);
 PwmOut esc4(ESC_MOTOR4);
 DigitalOut myled(LED1);
-DigitalOut power(PC_1);
-DigitalOut gnd(PC_0);
 
 

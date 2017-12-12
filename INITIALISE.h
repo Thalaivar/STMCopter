@@ -7,26 +7,26 @@
 #include "PPM.h"
 #include "PID.h"
 
-#define KP_ROLL     1.5
-#define KP_PITCH    1.4
-#define KP_YAW      -0.9
-#define KD_ROLL     0.0775
-#define KD_PITCH    0.0755
-#define KD_YAW      -0.04
-#define KI_ROLL     0.02
-#define KI_PITCH    0.02
-#define KI_YAW      0
 
 #define MAGBIAS_X 98.89
 #define MAGBIAS_Y 181.041
 #define MAGBIAS_Z -20.38
 
-
+float KP_ROLL = 1.5;
+float KP_PITCH = 1.4;
+float KP_YAW = 0;
+float KD_ROLL = 0.0775;
+float KD_PITCH = 0.0755;
+float KD_YAW = 0;
+float KI_ROLL = 0.0;
+float KI_PITCH = 0.0;
+float KI_YAW = 0;
+     
 void initialiseIMU();
 void initialisePeripherals(); //call first
-void initialiseErrInt();
+void initialiseErrInt(float* roll_integ, float* pitch_integ, float* yaw_integ);
 void initialiseTimers(); //call before main loop
-void initialiseGains();
+void initialiseGains(float* roll_kp, float* pitch_kp, float* yaw_kp, float* roll_kd, float* pitch_kd, float* yaw_kd, float* roll_ki, float* pitch_ki, float* yaw_ki);
 void initialiseMagBias();
 
 void initialiseIMU(){
@@ -69,6 +69,7 @@ void initialiseIMU(){
 
 void initialisePeripherals() {
         pc.baud(57600);
+        //pc2.baud(57600);
         myled=!myled;
         wait(1);
         myled=!myled;
@@ -77,22 +78,25 @@ void initialisePeripherals() {
         ppmPin.rise(&measureChannel);
     }
 
-void initialiseErrInt(){
-        roll_e.integ = 0;
-        pitch_e.integ = 0;
-        yaw_e.integ = 0;
+void initialiseErrInt(float* roll_integ, float* pitch_integ, float* yaw_integ){
+        *roll_integ = 0;
+        *pitch_integ = 0;
+        *yaw_integ = 0;
+        roll = 0;
+        pitch = 0;
+        yaw = 0;
     }
 
-void initialiseGains(){
-        roll_e.kp  = KP_ROLL;
-        pitch_e.kp = KP_PITCH;
-        yaw_e.kp   = KP_YAW;
-        roll_e.Kd  = KD_ROLL;
-        pitch_e.Kd = KD_PITCH;
-        yaw_e.Kd   = KD_YAW;
-        roll_e.ki  = KI_ROLL;
-        pitch_e.ki = KI_PITCH;
-        yaw_e.ki   = KI_YAW;  
+void initialiseGains(float* roll_kp, float* pitch_kp, float* yaw_kp, float* roll_kd, float* pitch_kd, float* yaw_kd, float* roll_ki, float* pitch_ki, float* yaw_ki){
+        *roll_kp  = KP_ROLL;
+        *pitch_kp = KP_PITCH;
+        *yaw_kp   = KP_YAW;
+        *roll_kd  = KD_ROLL;
+        *pitch_kd = KD_PITCH;
+        *yaw_kd   = KD_YAW;
+        *roll_ki  = KI_ROLL;
+        *pitch_ki = KI_PITCH;
+        *yaw_ki   = KI_YAW;  
 }
 
 void initialiseTimers(){
@@ -100,6 +104,7 @@ void initialiseTimers(){
         //t1.stop();
         t.start();
         t1.start();
+        t3.start();
     }
 
 void initialiseMagBias(){

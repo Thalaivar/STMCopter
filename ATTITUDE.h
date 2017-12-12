@@ -5,9 +5,9 @@
 #include "PERIPHERALS.h"
 #include "math.h"
 
-void getAngles(uint8_t print);
+void getAngles(float deltat);
 
-void getAngles(uint8_t print) {
+void getAngles(float deltat) {
       
      imu.readAccelData(accelCount); 
      ax = (float)accelCount[0]*aRes - accelBias[0];  
@@ -25,12 +25,16 @@ void getAngles(uint8_t print) {
      mz = (float)magCount[2]*mRes*magCalibration[2] - magbias[2];
                             
      float G = sqrt(ax*ax + ay*ay + az*az);
-     pitch = asin(-ax/G)*180.0f/PI;
-     roll = asin(ay/(G*cos(pitch*PI/180.0f)))*180.0f/PI;
-     yaw = atan2(my, mx);
-     yaw*=180.0f/PI;     
      
-     if(print == 1) pc.printf("%f, %f, %f\n", roll, pitch, yaw);
+     float pitchAcc = asin(-ax/G)*180.0f/PI;
+     float rollAcc = asin(ay/(G*cos(pitch*PI/180.0f)))*180.0f/PI;
+     float yawAcc = atan2(my, mx);
+     yawAcc*=180.0f/PI;     
+     
+     pitch = ((gx*deltat)*180.0f/PI + pitch)*0.98 + pitchAcc*0.02;
+     roll = ((gy*deltat)*180.0f/PI + roll)*0.98 + rollAcc*0.02;
+     yaw = ((gz*deltat)*180.0f/PI + yaw)*0.98 + yawAcc*0.02;
+     
 }
 
     

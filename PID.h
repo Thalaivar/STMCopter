@@ -6,6 +6,7 @@
 #include "mbed.h"
 #include "PPM.h" 
 #include "PERIPHERALS.h"
+#include "TELEMETRY.h"
 
 #define setpointScaler       12.575
 #define yawSetpointScaler    12.575
@@ -13,50 +14,38 @@
 #define MAX_THRUST_VAL       2000
 #define MIN_THRUST_VAL       1000
 
-void   controlQuad(uint8_t print);       //set print to 1: thrust vals  2: PID vals 3: proportional errors 4: derivative errors 5: integral errors 0: no print
-float  PID_pitch, PID_roll, PID_yaw;
+float roll_prev, roll_integ, roll_kp, roll_ki, roll_kd;
+float pitch_prev, pitch_integ, pitch_kp, pitch_ki, pitch_kd;
+float yaw_prev, yaw_integ, yaw_kp, yaw_ki, yaw_kd;
+
+float*   controlQuad(uint8_t print, float roll_prev, float roll_integ, float pitch_prev, float pitch_integ, float yaw_prev, float yaw_integ, float deltat);       //set print to 1: thrust vals  2: PID vals 3: proportional errors 4: derivative errors 5: integral errors 0: no print
 float  setpoints[6];
 float  calculateErrInt(float err_int, float err, float errPrev, float deltat);
 void   convertToSetpoints();
 
-class error{
-        public:
-            float integ;
-            float prev;
-            float kp;
-            float ki;
-            float Kd;
-        }roll_e, pitch_e, yaw_e;
-
-void controlQuad(uint8_t print){
+float* controlQuad(uint8_t print, float roll_prev, float roll_integ, float pitch_prev, float pitch_integ, float yaw_prev, float yaw_integ, float detat){
         //calculate errors
         //first proportional error
         
-        float deltat = t1.read_us()/1000000.0f;
-
         convertToSetpoints();
         float rollErr   =   setpoints[0] - roll;
         float pitchErr  =   setpoints[1] - pitch;
-        float yawErr    =   setpoints[3] - gz;  
+        float yawErr    =   setpoints[3] - gz*180.0f/PI;  
         
         float rollErrDot     =     -gx;
         float pitchErrDot    =     -gy;
-        float yawErrDot      =     -(yawErr - yaw_e.prev)/deltat; //low pass filter, also check actual noise
+        float yawErrDot      =     0;
         
         //calculate integral error
-        roll_e.integ    = calculateErrInt(roll_e.integ, rollErr, roll_e.prev, deltat);
-        pitch_e.integ   = calculateErrInt(pitch_e.integ, pitchErr, pitch_e.prev, deltat);
-        yaw_e.integ     = calculateErrInt(yaw_e.integ, yawErr, yaw_e.prev, deltat);
+        roll_integ    = calculateErrInt(roll_integ, rollErr, roll_prev, deltat);
+        pitch_integ   = calculateErrInt(pitch_integ, pitchErr, pitch_prev, deltat);
+        yaw_integ     = calculateErrInt(yaw_integ, yawErr, yaw_prev, deltat);
         
-        PID_roll =  roll_e.kp*rollErr   +   roll_e.Kd*rollErrDot       +    roll_e.ki*roll_e.integ;
-        PID_pitch = pitch_e.kp*pitchErr +   pitch_e.Kd*pitchErrDot     +    pitch_e.ki*pitch_e.integ;
-        PID_yaw =   yaw_e.kp*yawErr     +   yaw_e.Kd*yawErrDot         +    yaw_e.ki*yaw_e.integ;
+        float PID_roll =  roll_kp*rollErr   +   roll_kd*rollErrDot       +    roll_ki*roll_integ;
+        float PID_pitch = pitch_kp*pitchErr +   pitch_kd*pitchErrDot     +    pitch_ki*pitch_integ;
+        float PID_yaw =   yaw_kp*yawErr     +   yaw_kd*yawErrDot         +    yaw_ki*yaw_integ;
         
         //convertToMicroseconds(); need to convert PID outputs to esc microseconds
-        
-        roll_e.prev = rollErr;
-        pitch_e.prev = pitchErr;
-        yaw_e.prev = yawErr;
         
         int thrust1 = channelVal[2] - PID_pitch - PID_roll + PID_yaw;
         int thrust2 = channelVal[2] + PID_pitch - PID_roll - PID_yaw;
@@ -77,14 +66,19 @@ void controlQuad(uint8_t print){
         esc3.pulsewidth_us(thrust3);
         esc4.pulsewidth_us(thrust4);
         
-        if(print == 1) 
-                            pc.printf("%d,%d,%d,%d\n", thrust1,thrust2,thrust3, thrust4);
-        else if(print==2)   pc.printf("%f,%f,%f\n",    PID_roll, PID_pitch, PID_yaw);
-        else if(print==3)   pc.printf("%f,%f,%f\n",    rollErr, pitchErr,yawErr);
-        else if(print==4)   pc.printf("%f,%f,%f\n",    rollErrDot, pitchErrDot, yawErrDot);
-        else if(print==5)   pc.printf("%f,%f,%f\n",    roll_e.integ, pitch_e.integ, yaw_e.integ);
+        if(t3.read_ms() >= 35){
+            if(print == 1)      sendThrustData(thrust1,thrust2,thrust3, thrust4);
+            else if(print == 2)   sendPIDData(PID_roll, PID_pitch, PID_yaw);
+            else if(print == 3)   sendAngleData();
+            else if(print == 4)   sendData(PID_roll, PID_pitch, PID_yaw);
+            t3.reset();
+         }
+                
+        static float errorVals[6] = {rollErr, roll_integ, pitchErr, pitch_integ, yawErr, yaw_integ};
+        float* pointerToVals;
         
-        t1.reset();
+        pointerToVals = errorVals;
+        return pointerToVals;
     }
 
 float calculateErrInt(float err_int, float err, float errPrev, float deltat){ //calculate integral of error for all three at omce else timer will fuck up

@@ -51,7 +51,12 @@ void disarmCheck(){
 
 bool quadTestMode(bool enable){
     armCheck = enable;
+    esc1.pulsewidth_us(1000);
+    esc2.pulsewidth_us(1000);
+    esc3.pulsewidth_us(1000);
+    esc4.pulsewidth_us(1000);
     return enable;
+
 }
 
 void shutdown() {
